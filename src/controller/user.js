@@ -1,12 +1,12 @@
+const { exec } = require('../server/db/mysql')
+
 const loginCheck = (user, password) => {
-    console.log('login',user, password)
-    if(user === 'bamboo' && password === 'a123456'){
-        return {
-            userName: user,
-            userId: 999
-        }
-    }
-    return false
+    const sql = `
+        select userName, realName from users where userName='${user}' and passWord='${password}'
+    `
+    return exec(sql).then(rows => {
+        return rows[0] || {}
+    })
 }
 
 module.exports = {

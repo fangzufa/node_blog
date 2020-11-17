@@ -10,12 +10,12 @@ const handleUserRouter = (req, res) => {
     // 登录
     if (method === 'POST' && req.path === '/api/user/login') {
         const { user, password } = req.body
-        console.log(user)
-        const data = loginCheck(user, password)
-        if (typeof data === 'boolean') {
+        return loginCheck(user, password).then(data => {
+            if(data.userName){
+                return new SuccessModel(data)
+            }
             return new ErrorModel('登录失败！')
-        }
-        return new SuccessModel(data)
+        })
     }
 }
 
