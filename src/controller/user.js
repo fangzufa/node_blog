@@ -9,6 +9,20 @@ const loginCheck = (user, password) => {
     })
 }
 
+const registerCheck = (user, password, realname) => {
+    const sql = `
+        insert into users ( userName, passWord, realName) 
+        values ('${user}', '${password}', '${realname}');
+    `
+    return exec(sql).then(insertData => {
+        loginCheck(user, password)
+        return {
+            id: insertData.insertId
+        }
+    })
+}
+
 module.exports = {
-    loginCheck
+    loginCheck,
+    registerCheck
 }

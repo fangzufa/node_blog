@@ -1,12 +1,15 @@
 const { exec } = require('../server/db/mysql')
 
-const getList = (author, keyword) => {
+const getList = (author, keyword, id) => {
     let sql = `select * from blogs where 1=1 `;
     if (author) {
-        sql += `and author='${author}' `
+        sql += `and author like '%${author}%' `
     }
     if (keyword) {
         sql += `and title like '%${keyword}%' `
+    }
+    if (id) {
+        sql += `and id='${id}' `
     }
     sql += `order by createTime desc;`
 
@@ -42,16 +45,16 @@ const newBlog = (blogData = {}) => {
     })
 }
 
-const updataBlog = (id, blogData = {}) => {
+const updataBlog = (id, blogData = {}, author) => {
     // id 时候要更新博客的id
     // blogData 是一个博客对象， 包含title content
-
     const title = blogData.title
     const content = blogData.content
     const createTime = new Date().getTime()
     const sql = `
-        update blogs set title='${title}', content='${content}', createTime='${createTime}'  where id=${id};
+        update blogs set title='${title}', content='${content}', createTime='${createTime}'  where id=${id} and author='${author}';
     `
+    console.log(sql)
     return exec(sql).then(updateData => {
         if (updateData.affectedRows > 0) {
             return true
