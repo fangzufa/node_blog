@@ -24,3 +24,6 @@ GET -- /api/blog/list?author=bamboo -- Mozilla/5.0 (Macintosh; Intel Mac OS X 10
 GET -- /api/blog/list?author=bamboo -- Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36 -- 1605751931943
 GET -- /api/blog/detail?id=3 -- Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36 -- 1605751965212
 POST -- /api/user/login -- Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36 -- 1605754509702
+GET -- / -- Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36 -- 1605767561523
+GET -- /favicon.ico -- Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36 -- 1605767561678
+GET -- /api/blog/list -- Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36 -- 1605767565364
