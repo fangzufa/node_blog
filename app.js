@@ -2,9 +2,10 @@ const querystring = require('querystring')
 const handleBlogRouter = require('./src/router/blog')
 const handleUserRouter = require('./src/router/user')
 const { get } = require('./src/server/db/redis')
+const { access } = require('./src/utils/log')
 
 // session 数据
-const SESSION_DATA = {}
+// const SESSION_DATA = {}
 
 const getCookieExpires = () => {
     const d = new Date();
@@ -42,6 +43,10 @@ const getPostData = (req) => {
 }
 
 const serverHandle = (req, res) => {
+    // 记录 access log
+    access(`${req.method} -- ${req.url} -- ${req.headers['user-agent']} -- ${Date.now()}`)
+
+
     // 设置返回格式JSON
     res.setHeader('Content-type', 'application/json')
 
@@ -70,22 +75,11 @@ const serverHandle = (req, res) => {
     let needSetCookie = false
     let userId = req.cookie.userid
     get(userId || '').then(userInfo => {
-        if (userInfo) {
-            SESSION_DATA[userId] = userInfo
+        if (!userId) {
+            needSetCookie = true
+            userId = `${Date.now()}_${Math.random()}`
         }
-        else {
-            if (userId) {
-                if (!SESSION_DATA[userId]) {
-                    SESSION_DATA[userId] = {}
-                }
-            }
-            else {
-                needSetCookie = true
-                userId = `${Date.now()}_${Math.random()}`
-                SESSION_DATA[userId] = {}
-            }
-        }
-        req.session = SESSION_DATA[userId]
+        req.session = userInfo ? userInfo : {}
         req.sessionId = userId
 
         // 处理 postData
