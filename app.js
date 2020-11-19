@@ -1,138 +1,41 @@
-const querystring = require('querystring')
-const handleBlogRouter = require('./src/router/blog')
-const handleUserRouter = require('./src/router/user')
-const { get } = require('./src/server/db/redis')
-const { access } = require('./src/utils/log')
+var createError = require('http-errors');
+var express = require('express');
+var path = require('path');
+var cookieParser = require('cookie-parser');
+var logger = require('morgan');
 
-// session 数据
-// const SESSION_DATA = {}
+var indexRouter = require('./routes/index');
+var usersRouter = require('./routes/users');
 
-const getCookieExpires = () => {
-    const d = new Date();
-    d.setTime(d.getTime() + (24 * 60 * 60 * 1000))
-    return d.toGMTString();
-}
+var app = express();
 
-const getPostData = (req) => {
-    return new Promise((resolve, rejects) => {
-        if (req.method !== 'POST') {
-            resolve({})
-            return
-        }
-        if (req.headers['content-type'] !== 'application/json') {
-            resolve({})
-            return
-        }
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
 
-        let postData = ''
-        req.on('data', chunk => {
-            postData += chunk.toString()
-        })
+app.use(logger('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
 
-        req.on('end', () => {
-            if (!postData) {
-                resolve({})
-                return
-            }
-            resolve(
-                JSON.parse(postData)
-            )
-        })
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
 
-    })
-}
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  next(createError(404));
+});
 
-const serverHandle = (req, res) => {
-    // 记录 access log
-    access(`${req.method} -- ${req.url} -- ${req.headers['user-agent']} -- ${Date.now()}`)
+// error handler
+app.use(function(err, req, res, next) {
+  // set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
 
+  // render the error page
+  res.status(err.status || 500);
+  res.render('error');
+});
 
-    // 设置返回格式JSON
-    res.setHeader('Content-type', 'application/json')
-
-    // 获取 path
-    const url = req.url
-    req.path = url.split('?')[0]
-
-    // 获取 query
-    req.query = querystring.parse(url.split('?')[1])
-
-    // 解析 cookie
-    req.cookie = {}
-    const cookieStr = req.headers.cookie || ''  // k1=v1;k2=v2
-    cookieStr.split(';').forEach(item => {
-        if (!item) {
-            return
-        }
-        const arr = item.split('=')
-        const key = arr[0].trim()
-        const val = arr[1].trim()
-        req.cookie[key] = val
-    })
-
-    // 解析 session
-
-    let needSetCookie = false
-    let userId = req.cookie.userid
-    get(userId || '').then(userInfo => {
-        if (!userId) {
-            needSetCookie = true
-            userId = `${Date.now()}_${Math.random()}`
-        }
-        req.session = userInfo ? userInfo : {}
-        req.sessionId = userId
-
-        // 处理 postData
-        getPostData(req).then(postData => {
-            req.body = postData
-
-            // 处理 blog 路由
-            const blogResulr = handleBlogRouter(req, res)
-            if (blogResulr) {
-                blogResulr.then(blogData => {
-                    if (needSetCookie) {
-                        // 操作 cookie  httpOnly 只允许server端操作修改
-                        // 前端修改不了 会新增一个 同名的cookie
-                        res.setHeader('Set-Cookie', `userid=${userId}; path=/; httpOnly; expires=${getCookieExpires()}`)
-                    }
-
-                    res.end(
-                        JSON.stringify(blogData)
-                    )
-                })
-                return
-            }
-
-            // 处理 user 路由
-            const userResulr = handleUserRouter(req, res)
-            if (userResulr) {
-                userResulr.then(userData => {
-                    if (needSetCookie) {
-                        // 操作 cookie  httpOnly 只允许server端操作修改
-                        // 前端修改不了 会新增一个 同名的cookie
-                        res.setHeader('Set-Cookie', `userid=${userId}; path=/; httpOnly; expires=${getCookieExpires()}`)
-                    }
-
-                    res.end(
-                        JSON.stringify(userData)
-                    )
-                })
-                return
-            }
-
-            // 未命中路由，返回 404
-            res.writeHead(404, { 'Content-type': 'text/plain' })
-            res.write('404 Not Found\n')
-            res.end()
-        })
-    })
-
-
-}
-
-module.exports = serverHandle;
-
-
-// process.env.NODE_ENV
-
-// 6-3
+module.exports = app;
