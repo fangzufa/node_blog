@@ -1,2 +1,0 @@
-::1 - - [23/Nov/2020:09:57:38 +0000] "GET /api/blog/list?author=&keyword=&id= HTTP/1.1" 200 804 "http://localhost:8000/html/index.html" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36"
-::1 - - [23/Nov/2020:09:57:39 +0000] "GET /api/blog/detail?id=7 HTTP/1.1" 200 187 "http://localhost:8000/html/index.html" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36"
