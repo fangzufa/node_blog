@@ -7,7 +7,7 @@ express 分支 使用 express-generator 脚手架
 http://localhost:3000/html/index.html  
 
 koa2    分支 使用 koa2 脚手架  
-
+node 版本大于8.0
 
 > 切换分支后需删除 node_modules 文件夹 重新 install
 

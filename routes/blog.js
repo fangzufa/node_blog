@@ -1,5 +1,4 @@
-var express = require('express');
-var router = express.Router();
+const router = require('koa-router')()
 const { SuccessModel, ErrorModel } = require('../model/resModel')
 const {
     getList,
@@ -10,92 +9,59 @@ const {
 } = require('../controller/blog')
 const loginCheck = require('../middleware/loginCheck')
 
-router.get('/list', (req, res, next) => {
-    let author = req.query.author || ''
-    const keyword = req.query.keyword || ''
-    const id = req.query.id || ''
 
-    if (req.query.isadmin) {
-        if (req.session.username == null) {
-            res.json(
-                new ErrorModel('未登录')
-            )
+router.prefix('/api/blog')
+
+router.get('/list', async (ctx, next) => {
+    let author = ctx.query.author || ''
+    const keyword = ctx.query.keyword || ''
+    const id = ctx.query.id || ''
+
+    if (ctx.query.isadmin) {
+        if (ctx.session.username == null) {
+            ctx.body = new ErrorModel('未登录')
             return
         }
-        author = req.session.username
+        author = ctx.session.username
+    }
+    const listData = await getList(author, keyword, id)
+    let json = {
+        data: listData,
+        isLogin: ctx.session.username == null ? false : true,
     }
 
-    return getList(author, keyword, id).then(listData => {
-        // SuccessModel 也是个 promise
-        let json = {
-            data: listData,
-            isLogin: req.session.username == null ? false : true,
-        }
+    if (ctx.session.username) {
+        json.userName = ctx.session.username
+    }
+    ctx.body = new SuccessModel(json)
+})
 
-        if (req.session.username) {
-            json.userName = req.session.username
-        }
-        res.json(
-            new SuccessModel(json)
-        )
-    })
+router.get('/detail', async (ctx, next) => {
+    const data = await getDetail(ctx.query.id)
+    ctx.body = new SuccessModel(data)
 });
 
-router.get('/detail', (req, res, next) => {
-    return getDetail(req.query.id).then(data => {
-        res.json(
-            new SuccessModel(data)
-        )
-    })
+router.post('/new', loginCheck, async (ctx, next) => {
+    ctx.request.body.author = ctx.session.username
+
+    const data = await newBlog(ctx.request.body)
+    ctx.body = new SuccessModel(data)
 });
 
-router.post('/new', loginCheck, (req, res, next) => {
-    req.body.author = req.session.username
+router.post('/update', loginCheck, async (ctx, next) => {
+    const id = ctx.request.body.id
+    const author = ctx.session.username
 
-    return newBlog(req.body).then(data => {
-        res.json(
-            new SuccessModel(data)
-        )
-    })
+    const result = await updataBlog(id, ctx.request.body, author)
+    ctx.body = result ? new SuccessModel() : new ErrorModel('更新博客失败,只能更新自己的博客')
 });
 
-router.post('/update', loginCheck, (req, res, next) => {
-    const id = req.body.id
-    const author = req.session.username
+router.post('/del', loginCheck, async (ctx, next) => {
+    const id = ctx.request.body.id
+    const author = ctx.session.username
 
-    return updataBlog(id, req.body, author).then(result => {
-        if (result) {
-            res.json(
-                new SuccessModel()
-            )
-        }
-        else {
-            res.json(
-                new ErrorModel('更新博客失败,只能更新自己的博客')
-            )
-        }
-    })
+    const result = await delBlog(id, author)
+    ctx.body = result ? new SuccessModel() : new ErrorModel('删除博客失败,只能删除自己的博客')
 });
 
-router.post('/del', loginCheck, (req, res, next) => {
-    const id = req.body.id
-    const author = req.session.username
-
-    return delBlog(id, author).then(result => {
-        if (result) {
-            res.json(
-                new SuccessModel()
-            )
-        }
-        else {
-            res.json(
-                new ErrorModel('删除博客失败,只能删除自己的博客')
-            )
-        }
-    })
-});
-
-
-
-
-module.exports = router;
+module.exports = router

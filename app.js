@@ -1,29 +1,53 @@
-var createError = require('http-errors'); //处理404
-var express = require('express');
-var path = require('path');
+const Koa = require('koa')
+const app = new Koa()
+const views = require('koa-views') // 页面模板
+const json = require('koa-json') // json 处理
+const onerror = require('koa-onerror') // 错误处理
+const bodyparser = require('koa-bodyparser') // 处理 post data
+const logger = require('koa-logger') //格式化控制台中的console
+const session = require('koa-generic-session') //链接session
+const redisStore = require('koa-redis') // 链接redis
+const path = require('path')
 const fs = require('fs')
-var cookieParser = require('cookie-parser'); //处理cookie
-var logger = require('morgan'); //处理日志
-const session = require('express-session') //处理session
-const RedisStore = require('connect-redis')(session)
+const morgan = require('koa-morgan')
 
-// var indexRouter = require('./routes/index');
-// var usersRouter = require('./routes/users');
-const blogRouter = require('./routes/blog')
-const userRouter = require('./routes/user')
+// const index = require('./routes/index')
+// const users = require('./routes/users')
+const blog = require('./routes/blog')
+const usera = require('./routes/user')
 
-var app = express();
+const { REDIS_CONF } = require('./server/conf/db')
 
-// view engine setup (前端页面展示)
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+// error handler
+onerror(app)
+
+// middlewares
+app.use(bodyparser({
+  enableTypes: ['json', 'form', 'text']
+}))
+app.use(json())  //处理 post data  
+
+app.use(logger()) // 日志
+app.use(require('koa-static')(__dirname + '/public'))
+
+app.use(views(__dirname + '/views', {
+  extension: 'pug'
+}))
+
+// logger
+app.use(async (ctx, next) => {
+  const start = new Date()
+  await next()
+  const ms = new Date() - start
+  console.log(`${ctx.method} ${ctx.url} - ${ms}ms`)
+})
 
 // dev 是日志输出格式类型 可以在github上看配置
 // https://github.com/express/morgan    
 const ENV = process.env.NODE_ENV
 if (ENV !== 'production') {
   // 开发环境 或 测试环境
-  app.use(logger('dev'));
+  app.use(morgan('dev'));
 }
 else {
   // 线上环境
@@ -31,50 +55,33 @@ else {
   const writeStream = fs.createWriteStream(logFileName, {
     flags: 'a'
   })
-  app.use(logger('combined', {
+  app.use(morgan('combined', {
     stream: writeStream,
   }));
 }
 
-app.use(express.json()); //处理POST数据 post data  放到req.body
-app.use(express.urlencoded({ extended: false })); //兼容其他格式的post请求 放到req.body
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public'))); // 处理访问静态文件地址
-
-const redisClient = require('./server/db/redis')
-const sessionStore = new RedisStore({
-  client: redisClient
-})
+// 要在注册路由之前写入 session redis 配置
+app.keys = ['AAasd(78y%&_aa']
 app.use(session({
-  secret: 'AAasd(78y%&_aa', //session 密匙
+  // 配置 cookie
   cookie: {
-    // path: '/', //默认配置
-    // httpOnly: true, //默认配置
+    path: '/',
+    httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000
   },
-  store: sessionStore, //链接redis
+  store: redisStore({
+    all: `${REDIS_CONF.host}:${REDIS_CONF.port}`
+  })
 }))
+// routes
+// app.use(index.routes(), index.allowedMethods())
+// app.use(users.routes(), users.allowedMethods())
+app.use(blog.routes(), blog.allowedMethods())
+app.use(usera.routes(), usera.allowedMethods())
 
-// 注册路由 '/users' 父路由  usersRouter 里面是子路由
-// app.use('/', indexRouter);
-// app.use('/users', usersRouter);
-app.use('/api/blog', blogRouter);
-app.use('/api/user', userRouter);
-
-// catch 404 and forward to error handler
-app.use(function (req, res, next) {
-  next(createError(404));
+// error-handling
+app.on('error', (err, ctx) => {
+  console.error('server error', err, ctx)
 });
 
-// error handler
-app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'dev' ? err : {}; //development
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
-
-module.exports = app;
+module.exports = app

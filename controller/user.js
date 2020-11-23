@@ -1,20 +1,18 @@
 const { exec, escape } = require('../server/db/mysql')
 const { genPassword } = require('../utils/crypto')
 
-const loginCheck = (user, password) => {
+const loginCheck = async (user, password) => {
     user = escape(user)
     password = genPassword(password)
     password = escape(password)
-
     const sql = `
         select userName, realName from users where userName=${user} and passWord=${password}
     `
-    return exec(sql).then(rows => {
-        return rows[0] || {}
-    })
+    const rows = await exec(sql)
+    return rows[0] || {}
 }
 
-const registerCheck = (user, password, realname) => {
+const registerCheck = async (user, password, realname) => {
     user = escape(user)
     password = genPassword(password)
     password = escape(password)
@@ -23,12 +21,16 @@ const registerCheck = (user, password, realname) => {
         insert into users ( userName, passWord, realName) 
         values (${user}, ${password}, ${realname});
     `
-    return exec(sql).then(insertData => {
-        loginCheck(user, password)
-        return {
-            id: insertData.insertId
-        }
-    })
+    const sql1 = `
+        select userName, realName from users where userName=${user} and passWord=${password}
+    `
+    const insertData = await exec(sql)
+    const loginData = await exec(sql1)
+    return {
+        userName: loginData[0].userName,
+        realName: loginData[0].realName,
+        id: insertData.insertId
+    }
 }
 
 module.exports = {
